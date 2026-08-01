@@ -1,47 +1,65 @@
 import { env } from "./env.js";
 
-export const divisions = Object.freeze([
+const definitions = [
   {
     key: "HQMC",
-    priority: 100,
-    discordRoleId: env.ROLE_HQMC,
-    robloxTeam: env.TEAM_HQMC
+    roleId: env.ROLE_HQMC,
+    teamName: env.TEAM_HQMC,
+    priority: 100
   },
   {
     key: "MARSOC",
-    priority: 90,
-    discordRoleId: env.ROLE_MARSOC,
-    robloxTeam: env.TEAM_MARSOC
+    roleId: env.ROLE_MARSOC,
+    teamName: env.TEAM_MARSOC,
+    priority: 90
   },
   {
     key: "TECOM",
-    priority: 80,
-    discordRoleId: env.ROLE_TECOM,
-    robloxTeam: env.TEAM_TECOM
+    roleId: env.ROLE_TECOM,
+    teamName: env.TEAM_TECOM,
+    priority: 80
   },
   {
     key: "MCRD",
-    priority: 70,
-    discordRoleId: env.ROLE_MCRD,
-    robloxTeam: env.TEAM_MCRD
+    roleId: env.ROLE_MCRD,
+    teamName: env.TEAM_MCRD,
+    priority: 70
   },
   {
     key: "I_MEF",
-    priority: 60,
-    discordRoleId: env.ROLE_I_MEF,
-    robloxTeam: env.TEAM_I_MEF
+    roleId: env.ROLE_I_MEF,
+    teamName: env.TEAM_I_MEF,
+    priority: 60
   }
-].filter((division) => division.discordRoleId));
+];
+
+export const DIVISIONS = Object.freeze(
+  definitions.filter(
+    (division) =>
+      typeof division.roleId === "string" &&
+      division.roleId.length > 0
+  )
+);
+
+export const DEFAULT_TEAM = env.TEAM_DEFAULT;
+export const PERSONNEL_TEAM = env.TEAM_PERSONNEL;
+
+/*
+ * Compatibility exports for both the original foundation and the rebuilt
+ * project. Existing files can import either DIVISIONS or divisions.
+ */
+export const divisions = DIVISIONS;
 
 export function resolveDivision(memberRoleIds) {
-  const matches = divisions
-    .filter((division) => memberRoleIds.has(division.discordRoleId))
-    .sort((a, b) => b.priority - a.priority);
+  const match = DIVISIONS
+    .filter((division) => memberRoleIds.has(division.roleId))
+    .sort((a, b) => b.priority - a.priority)[0];
 
-  return matches[0] ?? {
+  return match ?? {
     key: "DEFAULT",
-    priority: 0,
-    discordRoleId: null,
-    robloxTeam: env.TEAM_DEFAULT
+    roleId: null,
+    teamName: DEFAULT_TEAM,
+    robloxTeam: DEFAULT_TEAM,
+    priority: 0
   };
 }

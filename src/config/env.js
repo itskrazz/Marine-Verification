@@ -15,7 +15,10 @@ const schema = z.object({
   DISCORD_LOG_CHANNEL_ID: optionalSnowflake,
 
   PORT: z.coerce.number().int().positive().default(3000),
-  PUBLIC_BASE_URL: z.string().url(),
+  PUBLIC_BASE_URL: z
+    .string()
+    .url()
+    .default("https://marine-verification.onrender.com"),
   ROBLOX_API_SECRET: z.string().min(32),
 
   DATABASE_URL: z.string().min(1),
@@ -26,14 +29,17 @@ const schema = z.object({
 
   ROLE_HQMC: optionalSnowflake,
   ROLE_TECOM: optionalSnowflake,
+  ROLE_MCRD: optionalSnowflake,
   ROLE_I_MEF: optionalSnowflake,
   ROLE_MARSOC: optionalSnowflake,
 
   TEAM_HQMC: z.string().default("Headquarters Marine Corps"),
   TEAM_TECOM: z.string().default("Training and Education Command"),
+  TEAM_MCRD: z.string().default("Marine Corps Recruit Depot"),
   TEAM_I_MEF: z.string().default("I Marine Expeditionary Force"),
   TEAM_MARSOC: z.string().default("Marine Forces Special Operations Command"),
-  TEAM_DEFAULT: z.string().default("Marine Personnel")
+  TEAM_DEFAULT: z.string().default("Civilian"),
+  TEAM_PERSONNEL: z.string().default("Marine Corps Personnel")
 });
 
 const parsed = schema.safeParse(process.env);
