@@ -1,48 +1,53 @@
-import crypto from 'node:crypto';
-import { env } from '../config/env.js';
-import { pool } from '../database/pool.js';
+import { pool } from "../database/pool.js";
+import { createSignature, safeEqual } from "../utils/signature.js";
 
-function safeEqual(left, right) {
-  const a = Buffer.from(left ?? '');
-  const b = Buffer.from(right ?? '');
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
+const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 
-export async function requireRobloxAuth(request, response, next) {
+export async function robloxAuth(req, res, next) {
   try {
-    const secret = request.header('x-usmc-secret');
-    const nonce = request.header('x-usmc-nonce');
-    const timestamp = Number(request.header('x-usmc-timestamp'));
+    const timestamp = req.header("x-usmc-timestamp");
+    const nonce = req.header("x-usmc-nonce");
+    const signature = req.header("x-usmc-signature");
 
-    if (!safeEqual(secret, env.ROBLOX_API_SECRET)) {
-      return response.status(401).json({ error: 'Unauthorized' });
+    if (!timestamp || !nonce || !signature) {
+      return res.status(401).json({ error: "Missing authentication headers." });
     }
 
-    if (!nonce || !Number.isFinite(timestamp)) {
-      return response.status(400).json({ error: 'Missing request security headers' });
+    const timestampNumber = Number(timestamp);
+    if (
+      !Number.isFinite(timestampNumber) ||
+      Math.abs(Date.now() - timestampNumber) > MAX_CLOCK_SKEW_MS
+    ) {
+      return res.status(401).json({ error: "Expired request timestamp." });
     }
 
-    const age = Math.abs(Date.now() - timestamp * 1000);
-    if (age > 120_000) {
-      return response.status(401).json({ error: 'Expired request' });
+    const body = req.rawBody ?? "";
+    const expected = createSignature({ timestamp, nonce, body });
+
+    if (!safeEqual(signature, expected)) {
+      return res.status(401).json({ error: "Invalid request signature." });
     }
 
-    await pool.query('DELETE FROM api_nonces WHERE expires_at <= NOW()');
-    try {
-      await pool.query(
-        `INSERT INTO api_nonces (nonce, expires_at)
-         VALUES ($1, NOW() + INTERVAL '5 minutes')`,
-        [nonce]
-      );
-    } catch (error) {
-      if (error.code === '23505') {
-        return response.status(409).json({ error: 'Replayed request' });
-      }
-      throw error;
+    const insert = await pool.query(
+      `
+        INSERT INTO api_nonces (nonce)
+        VALUES ($1)
+        ON CONFLICT DO NOTHING
+        RETURNING nonce
+      `,
+      [nonce]
+    );
+
+    if (insert.rowCount === 0) {
+      return res.status(409).json({ error: "Request nonce already used." });
     }
 
-    return next();
+    await pool.query(
+      `DELETE FROM api_nonces WHERE created_at < NOW() - INTERVAL '10 minutes'`
+    );
+
+    next();
   } catch (error) {
-    return next(error);
+    next(error);
   }
 }

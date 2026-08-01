@@ -1,16 +1,16 @@
-import pg from 'pg';
-import { env } from '../config/env.js';
+import pg from "pg";
+import { env } from "../config/env.js";
 
 const { Pool } = pg;
 
 export const pool = new Pool({
   connectionString: env.DATABASE_URL,
-  ssl: env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  ssl: env.DATABASE_SSL ? { rejectUnauthorized: false } : false,
   max: 10,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 10_000
 });
 
-pool.on('error', (error) => {
-  console.error('Unexpected PostgreSQL pool error:', error);
+pool.on("error", (error) => {
+  console.error("Unexpected PostgreSQL pool error:", error);
 });

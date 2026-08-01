@@ -1,34 +1,39 @@
-import { PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
-import { getLinkByRobloxUserId } from '../services/verifications.js';
-import { resolveTeam } from '../services/teamResolver.js';
+import {
+  PermissionFlagsBits,
+  SlashCommandBuilder
+} from "discord.js";
+import { findByDiscordUserId } from "../database/personnelRepository.js";
+import { getMemberSyncData } from "../services/discordSyncService.js";
 
 export const data = new SlashCommandBuilder()
-  .setName('sync')
-  .setDescription('View the resolved Roblox team for a linked Roblox user.')
+  .setName("sync")
+  .setDescription("Check the Roblox team assignment for a verified member.")
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
-  .addIntegerOption((option) =>
-    option.setName('roblox_user_id').setDescription('Roblox numeric user ID').setRequired(true).setMinValue(1)
+  .addUserOption((option) =>
+    option
+      .setName("member")
+      .setDescription("The Discord member to check.")
+      .setRequired(true)
   );
 
 export async function execute(interaction) {
   await interaction.deferReply({ ephemeral: true });
-  const robloxUserId = interaction.options.getInteger('roblox_user_id', true);
-  const link = await getLinkByRobloxUserId(robloxUserId);
 
-  if (!link) {
-    await interaction.editReply('No verified Discord account is linked to that Roblox user ID.');
-    return;
+  const user = interaction.options.getUser("member", true);
+  const personnel = await findByDiscordUserId(user.id);
+
+  if (!personnel) {
+    return interaction.editReply("That member has not linked a Roblox account.");
   }
 
-  const member = await interaction.guild.members.fetch(link.discord_user_id).catch(() => null);
-  if (!member) {
-    await interaction.editReply('The linked Discord account is not currently in this server.');
-    return;
-  }
+  const sync = await getMemberSyncData(interaction.client, user.id);
 
-  const resolved = resolveTeam(member);
-  await interaction.editReply(
-    `**${link.roblox_username}** resolves to **${resolved.teamName}**` +
-      (resolved.division ? ` through **${resolved.division}**.` : '.')
+  return interaction.editReply(
+    [
+      `Member: **${user.username}**`,
+      `Roblox: **${personnel.roblox_username}**`,
+      `Division: **${sync.division}**`,
+      `Assigned Team: **${sync.team}**`
+    ].join("\n")
   );
 }

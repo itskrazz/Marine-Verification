@@ -1,39 +1,44 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { findRobloxUserByUsername } from '../services/roblox.js';
-import { createVerification } from '../services/verifications.js';
+import { SlashCommandBuilder } from "discord.js";
+import { resolveRobloxUsername } from "../services/robloxService.js";
+import { createVerificationCode } from "../services/verificationService.js";
 
 export const data = new SlashCommandBuilder()
-  .setName('verify')
-  .setDescription('Link your Roblox account to your Discord account.')
+  .setName("verify")
+  .setDescription("Link your Discord account to your Roblox account.")
   .addStringOption((option) =>
-    option.setName('username').setDescription('Your exact Roblox username').setRequired(true)
+    option
+      .setName("username")
+      .setDescription("Your exact Roblox username.")
+      .setRequired(true)
+      .setMinLength(3)
+      .setMaxLength(20)
   );
 
 export async function execute(interaction) {
   await interaction.deferReply({ ephemeral: true });
 
-  const username = interaction.options.getString('username', true).trim();
-  const robloxUser = await findRobloxUserByUsername(username);
+  const username = interaction.options.getString("username", true).trim();
+  const robloxUser = await resolveRobloxUsername(username);
 
   if (!robloxUser) {
-    await interaction.editReply('That Roblox username could not be found.');
-    return;
+    return interaction.editReply(
+      "That Roblox username was not found. Check the spelling and try again."
+    );
   }
 
-  const code = await createVerification({
+  const code = await createVerificationCode({
     discordUserId: interaction.user.id,
     robloxUserId: robloxUser.id,
     robloxUsername: robloxUser.name
   });
 
-  const embed = new EmbedBuilder()
-    .setTitle('USMC Account Verification')
-    .setDescription(
-      `Join the Roblox experience on **${robloxUser.name}** and type:\n\n` +
-      `\`!verify ${code}\`\n\n` +
-      'The code expires in 10 minutes and can only be used by that Roblox account.'
-    )
-    .setFooter({ text: 'Never share your verification code.' });
-
-  await interaction.editReply({ embeds: [embed] });
+  return interaction.editReply(
+    [
+      `Roblox account found: **${robloxUser.name}**`,
+      "",
+      `Join the Roblox experience and type: \`!verify ${code}\``,
+      "",
+      "The code expires in 10 minutes and can only be used by that Roblox account."
+    ].join("\n")
+  );
 }
