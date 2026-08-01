@@ -1,7 +1,6 @@
 import {
   SlashCommandBuilder
 } from "discord.js";
-import { DIVISIONS } from "../config/divisions.js";
 import {
   deletePersonnelByDiscordId,
   findPersonnelByDiscordId,
@@ -28,10 +27,6 @@ import {
   setMemberDivision
 } from "../services/discordService.js";
 
-const divisionChoices = DIVISIONS.map((division) => ({
-  name: division.key,
-  value: division.key
-}));
 
 export const data = new SlashCommandBuilder()
   .setName("admin")
@@ -85,18 +80,12 @@ export const data = new SlashCommandBuilder()
           .setDescription("Discord member.")
           .setRequired(true)
       )
-      .addStringOption((option) => {
+      .addStringOption((option) =>
         option
           .setName("division")
-          .setDescription("Division to assign.")
-          .setRequired(true);
-
-        if (divisionChoices.length > 0) {
-          option.addChoices(...divisionChoices);
-        }
-
-        return option;
-      });
+          .setDescription("Division key from /setup divisions, such as hqmc or tecom.")
+          .setRequired(true)
+      );
 
     return builder;
   })
@@ -199,7 +188,7 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction) {
-  if (!isAuthorizedAdmin(interaction)) {
+  if (!(await isAuthorizedAdmin(interaction))) {
     return interaction.reply({
       content: "You are not authorized to use USMC administration commands.",
       ephemeral: true

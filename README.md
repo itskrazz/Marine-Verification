@@ -1,51 +1,38 @@
-# Marine Verification v5
+# Marine Verification v5.1
 
-This version stores changing server settings in PostgreSQL. You no longer add role IDs, channel IDs, division IDs, team names, or nickname formats to `.env`.
+This release fixes the v5 startup crash caused by the old static `DIVISIONS` import.
+All divisions, system roles, logging channels, default teams, and nickname templates are now read from PostgreSQL through `/setup`.
 
-## Only required `.env` / Render variables
+## Minimal Render environment
 
-- `DISCORD_TOKEN`
-- `DISCORD_CLIENT_ID`
-- `DISCORD_GUILD_ID`
-- `DISCORD_OWNER_ID` (optional)
-- `DATABASE_URL`
-- `DATABASE_SSL=true`
-- `PUBLIC_BASE_URL`
-- `ROBLOX_API_SECRET`
-- `PORT=3000`
+```env
+DISCORD_TOKEN=
+DISCORD_CLIENT_ID=
+DISCORD_GUILD_ID=
+DISCORD_OWNER_ID=
+DATABASE_URL=
+DATABASE_SSL=true
+PUBLIC_BASE_URL=https://marine-verification.onrender.com
+ROBLOX_API_SECRET=
+PORT=3000
+```
 
-## First-time setup in Discord
+## First setup commands
 
-Run:
+```text
+/setup role type:Verified role:@Verified
+/setup role type:Admin role:@Administration
+/setup channel type:Logs channel:#bot-logs
+/setup default-team name:Marine Corps Personnel
+/setup nickname-template template:[{rank}] {roblox}
+```
 
-- `/setup role type:Verified role:@Verified`
-- `/setup role type:Admin role:@Admin`
-- `/setup role type:Moderator role:@Moderator`
-- `/setup role type:Trainer role:@Trainer`
-- `/setup channel type:Logs channel:#logs`
-- `/setup default-team name:Marine Corps Personnel`
-- `/setup nickname-template template:[{rank}] {roblox}`
-- `/setup division-add key:hqmc name:Headquarters Marine Corps role:@HQMC team:Headquarters Marine Corps`
+Add each division with `/setup division-add`. Use the short key later in `/admin set-division`.
 
-Repeat `/setup division-add` for TECOM, I MEF, MARSOC, or any future division. No Render environment edits are needed.
+Example:
 
-## Added command families
+```text
+/setup division-add key:hqmc name:Headquarters Marine Corps role:@HQMC team:Headquarters Marine Corps
+```
 
-- `/setup` — database-backed configuration
-- `/community` — rep, commendations, daily, balance, shop, buy, inventory, use, transfer, missions, badges, awards
-- `/org` — create/edit/delete/list divisions, units, billets
-- `/events` — host requests, events, check-in/out, LOA
-- `/legal` — counseling, NJP, investigations
-- Existing `/marine`, `/training`, `/qualification`, `/moderation`, `/admin`, `/verify`, `/status`, `/owner`, `/rep`, and `/economy` remain included.
-
-## Nicknames
-
-Promotion/rank commands use the saved template. Default:
-
-`[{rank}] {roblox}`
-
-No callsigns are included.
-
-## Deployment
-
-Replace the full GitHub repository with v5, except `.env` and `node_modules`. Render runs database migrations and deploys commands automatically.
+Do not mix this version with older v5 files. Replace the whole GitHub repository except `.env` and `node_modules`.

@@ -84,7 +84,7 @@ export async function clearMemberDivisions(client, discordUserId) {
   return removableRoleIds.length;
 }
 
-export function isAuthorizedAdmin(interaction) {
+export async function isAuthorizedAdmin(interaction) {
   if (interaction.memberPermissions?.has("Administrator")) {
     return true;
   }
@@ -93,14 +93,11 @@ export function isAuthorizedAdmin(interaction) {
     return true;
   }
 
-  if (
-    env.DISCORD_ADMIN_ROLE_ID &&
-    interaction.member?.roles?.cache?.has(env.DISCORD_ADMIN_ROLE_ID)
-  ) {
-    return true;
-  }
-
-  return false;
+  const config = await getGuildConfig(interaction.guildId ?? env.DISCORD_GUILD_ID);
+  return Boolean(
+    config.roles.admin &&
+    interaction.member?.roles?.cache?.has(config.roles.admin)
+  );
 }
 
 export async function sendLog(client, {
@@ -108,14 +105,15 @@ export async function sendLog(client, {
   description,
   fields = []
 }) {
-  if (!env.DISCORD_LOG_CHANNEL_ID) {
-    return;
-  }
-
   try {
-    const channel = await client.channels.fetch(
-      env.DISCORD_LOG_CHANNEL_ID
-    );
+    const config = await getGuildConfig(env.DISCORD_GUILD_ID);
+    const channelId = config.channels.logs;
+
+    if (!channelId) {
+      return;
+    }
+
+    const channel = await client.channels.fetch(channelId);
 
     if (!channel?.isTextBased()) {
       return;
