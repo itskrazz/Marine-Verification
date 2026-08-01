@@ -1,28 +1,47 @@
-# Discord
-DISCORD_TOKEN=MTUzMjkyMDU2Mjg5MTEwMDIzMA.Gn39Zx.IoqiedNU85utKlp3EajmlLndxhc9ylV5TDKw9c
-DISCORD_CLIENT_ID=1532920562891100230
-DISCORD_GUILD_ID=1528817341675081748
-DISCORD_VERIFIED_ROLE_ID=1529179897392664586
-DISCORD_LOG_CHANNEL_ID=1529233747344490589
+import "dotenv/config";
+import { z } from "zod";
 
-# Render / HTTP
-PORT=3000
-PUBLIC_BASE_URL=https://marine-verification.onrender.com
-ROBLOX_API_SECRET=34shZdjOE0yW79C1tlSOQhtOZCnehxFex4eYyiGGXBvjn6pCZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNkluTnBaeTB5TURJeExUQTNMVEV6VkRFNE9qVXhPalE1V2lJc0luUjVjQ0k2SWtwWFZDSjkuZXlKaGRXUWlPaUpTYjJKc2IzaEpiblJsY201aGJDSXNJbWx6Y3lJNklrTnNiM1ZrUVhWMGFHVnVkR2xqWVhScGIyNVRaWEoyYVdObElpd2lZbUZ6WlVGd2FVdGxlU0k2SWpNMGMyaGFaR3BQUlRCNVZ6YzVRekYwYkZOUFVXaDBUMXBEYm1Wb2VFWmxlRFJsV1hscFIwZFlRblpxYmpad1F5SXNJbTkzYm1WeVNXUWlPaUl4TmpjMk5qa3dNVEl5SWl3aVpYaHdJam94TnpnMU5URTROalkzTENKcFlYUWlPakUzT0RVMU1UVXdOamNzSW01aVppSTZNVGM0TlRVeE5UQTJOMzAuSFBRdG5rN2pHeXhjVzlMUl85TWt6NVBIOGhiWlFfcWpMTFdZUzczVVlYYTVNOXJFNTRBVXpfRW9mZFhoRWxDMnRMdTZEM1g2eVhSZk50a2hhd1E5aDJQUWtyOXo5MVhtZmtKMGY0MWREdl9uMWVvZEFjR1NiUXNyT3FDNHUweGFnMG9WTVQ1ZlNvT3FIS1czaXpCNThSRzNnZ3lQX3NXYjlfMUotaVlweTE5M1hSRnc1SVdZR0J5d3AxdF9WQ1ZabVdrTEZmLThUZDB5bk5nSjBFbjNUaFdkal9wZEgyWkh4YjBYMEtuT1p1ekVyUnA4QWxRQjl4aW0tbDFHYUJzRU1Ra0RUcEdSbXVfM0UwM1Jpb3JWNjV6ZjNzY3U1WUlzaTl1eUxsUm5HcElUcDBhbFQ1ZmQ5VEwzZEVDRXl0ejhjRHQ3c2twN2lJdmRkWTFoT2lLTWdR
+const optionalSnowflake = z
+  .string()
+  .regex(/^\d{17,20}$/)
+  .optional()
+  .or(z.literal(""));
 
-# PostgreSQL
-DATABASE_URL=postgresql://marine_verification_user:PqJpkw4MrBEsvkx1n5NddXAwFqtxpBND@dpg-d9mlam5bedkc73e0es60-a.ohio-postgres.render.com/marine_verification
-DATABASE_SSL=true
+const schema = z.object({
+  DISCORD_TOKEN: z.string().min(20),
+  DISCORD_CLIENT_ID: z.string().regex(/^\d{17,20}$/),
+  DISCORD_GUILD_ID: z.string().regex(/^\d{17,20}$/),
+  DISCORD_VERIFIED_ROLE_ID: optionalSnowflake,
+  DISCORD_LOG_CHANNEL_ID: optionalSnowflake,
 
-# Discord division role IDs
-ROLE_HQMC=1529599315364941854
-ROLE_TECOM=1532922202519765053
-ROLE_I_MEF=1532922946102759506
-ROLE_MARSOC=1532923085974671441
+  PORT: z.coerce.number().int().positive().default(3000),
+  PUBLIC_BASE_URL: z.string().url(),
+  ROBLOX_API_SECRET: z.string().min(32),
 
-# Exact Roblox team names
-TEAM_HQMC=Headquarters Marine Corps
-TEAM_TECOM=Training and Education Command
-TEAM_I_MEF=I Marine Expeditionary Force
-TEAM_MARSOC=Marine Forces Special Operations Command
-TEAM_DEFAULT=Marine Personnel
+  DATABASE_URL: z.string().min(1),
+  DATABASE_SSL: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
+
+  ROLE_HQMC: optionalSnowflake,
+  ROLE_TECOM: optionalSnowflake,
+  ROLE_I_MEF: optionalSnowflake,
+  ROLE_MARSOC: optionalSnowflake,
+
+  TEAM_HQMC: z.string().default("Headquarters Marine Corps"),
+  TEAM_TECOM: z.string().default("Training and Education Command"),
+  TEAM_I_MEF: z.string().default("I Marine Expeditionary Force"),
+  TEAM_MARSOC: z.string().default("Marine Forces Special Operations Command"),
+  TEAM_DEFAULT: z.string().default("Marine Personnel")
+});
+
+const parsed = schema.safeParse(process.env);
+
+if (!parsed.success) {
+  console.error("Invalid environment configuration:");
+  console.error(parsed.error.flatten().fieldErrors);
+  process.exit(1);
+}
+
+export const env = Object.freeze(parsed.data);
