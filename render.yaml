@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: usmc-community-bot
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run db:init && npm run deploy-commands
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.1
+      - key: DATABASE_SSL
+        value: "true"
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: DISCORD_GUILD_ID
+        sync: false
+      - key: DISCORD_VERIFIED_ROLE_ID
+        sync: false
+      - key: DISCORD_LOG_CHANNEL_ID
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: ROBLOX_API_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: usmc-community-db
+          property: connectionString
+      - key: ROLE_HQMC
+        sync: false
+      - key: ROLE_TECOM
+        sync: false
+      - key: ROLE_MCRD
+        sync: false
+      - key: ROLE_I_MEF
+        sync: false
+      - key: ROLE_MARSOC
+        sync: false
+
+databases:
+  - name: usmc-community-db
+    plan: free

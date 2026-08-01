@@ -1,0 +1,27 @@
+{
+  "name": "usmc-community-foundation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Production foundation for a USMC Roblox community: Discord verification, secure API, and Roblox team synchronization.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "deploy-commands": "node src/deploy-commands.js",
+    "db:init": "node src/database/migrate.js",
+    "check": "node --check src/index.js"
+  },
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "dependencies": {
+    "discord.js": "^14.19.3",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
+    "pg": "^8.16.0",
+    "zod": "^3.25.0"
+  }
+}
