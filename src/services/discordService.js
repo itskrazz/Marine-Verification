@@ -1,6 +1,7 @@
 import { EmbedBuilder } from "discord.js";
 import { env } from "../config/env.js";
-import { DIVISIONS, resolveTeam } from "../config/divisions.js";
+import { resolveTeam } from "../config/divisions.js";
+import { getGuildConfig, listEntities } from "./configService.js";
 
 export async function getDiscordGuild(client) {
   return client.guilds.fetch(env.DISCORD_GUILD_ID);
@@ -14,7 +15,7 @@ export async function getDiscordMember(client, discordUserId) {
 export async function getMemberTeamData(client, discordUserId) {
   const member = await getDiscordMember(client, discordUserId);
   const roleIds = new Set(member.roles.cache.keys());
-  const resolved = resolveTeam(roleIds);
+  const resolved = await resolveTeam(roleIds);
 
   return {
     discordUserId,
@@ -25,30 +26,30 @@ export async function getMemberTeamData(client, discordUserId) {
 }
 
 export async function grantVerifiedRole(client, discordUserId) {
-  if (!env.DISCORD_VERIFIED_ROLE_ID) {
+  if (!(await getGuildConfig(env.DISCORD_GUILD_ID)).roles.verified) {
     return;
   }
 
   const member = await getDiscordMember(client, discordUserId);
 
-  if (!member.roles.cache.has(env.DISCORD_VERIFIED_ROLE_ID)) {
+  if (!member.roles.cache.has((await getGuildConfig(env.DISCORD_GUILD_ID)).roles.verified)) {
     await member.roles.add(
-      env.DISCORD_VERIFIED_ROLE_ID,
+      (await getGuildConfig(env.DISCORD_GUILD_ID)).roles.verified,
       "Completed Roblox account verification"
     );
   }
 }
 
 export async function removeVerifiedRole(client, discordUserId) {
-  if (!env.DISCORD_VERIFIED_ROLE_ID) {
+  if (!(await getGuildConfig(env.DISCORD_GUILD_ID)).roles.verified) {
     return;
   }
 
   const member = await getDiscordMember(client, discordUserId);
 
-  if (member.roles.cache.has(env.DISCORD_VERIFIED_ROLE_ID)) {
+  if (member.roles.cache.has((await getGuildConfig(env.DISCORD_GUILD_ID)).roles.verified)) {
     await member.roles.remove(
-      env.DISCORD_VERIFIED_ROLE_ID,
+      (await getGuildConfig(env.DISCORD_GUILD_ID)).roles.verified,
       "Roblox account link removed"
     );
   }
@@ -56,39 +57,21 @@ export async function removeVerifiedRole(client, discordUserId) {
 
 export async function setMemberDivision(client, discordUserId, divisionKey) {
   const member = await getDiscordMember(client, discordUserId);
-  const selected = DIVISIONS.find((division) => division.key === divisionKey);
-
-  if (!selected) {
-    throw new Error(`Unknown division: ${divisionKey}`);
-  }
-
-  const removableRoleIds = DIVISIONS
-    .map((division) => division.roleId)
-    .filter((roleId) => roleId && member.roles.cache.has(roleId));
-
-  if (removableRoleIds.length > 0) {
-    await member.roles.remove(
-      removableRoleIds,
-      "USMC admin division reassignment"
-    );
-  }
-
-  await member.roles.add(
-    selected.roleId,
-    `USMC admin division assignment: ${selected.key}`
-  );
-
-  return {
-    division: selected.key,
-    team: selected.teamName
-  };
+  const divisions = await listEntities(env.DISCORD_GUILD_ID, "division");
+  const selected = divisions.find(d => d.entity_key === divisionKey);
+  if (!selected?.discord_role_id) throw new Error("Division is not configured with a Discord role.");
+  const removable = divisions.map(d=>d.discord_role_id).filter(id=>id && member.roles.cache.has(id));
+  if (removable.length) await member.roles.remove(removable, "USMC division reassignment");
+  await member.roles.add(selected.discord_role_id, "USMC division assignment");
+  return { division:selected.name, team:selected.roblox_team_name || selected.name };
 }
 
 export async function clearMemberDivisions(client, discordUserId) {
   const member = await getDiscordMember(client, discordUserId);
 
-  const removableRoleIds = DIVISIONS
-    .map((division) => division.roleId)
+  const divisions = await listEntities(env.DISCORD_GUILD_ID, "division");
+  const removableRoleIds = divisions
+    .map((division) => division.discord_role_id)
     .filter((roleId) => roleId && member.roles.cache.has(roleId));
 
   if (removableRoleIds.length > 0) {

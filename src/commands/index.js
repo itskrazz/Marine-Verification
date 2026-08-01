@@ -1,13 +1,18 @@
 import * as verify from "./verify.js";
 import * as status from "./status.js";
 import * as admin from "./admin.js";
-
-export const commands = new Map([
-  [verify.data.name, verify],
-  [status.data.name, status],
-  [admin.data.name, admin]
-]);
-
-export const commandJson = [...commands.values()].map(
-  (command) => command.data.toJSON()
-);
+import * as rep from "./rep.js";
+import * as economy from "./economy.js";
+import * as marine from "./marine.js";
+import * as training from "./training.js";
+import * as qualification from "./qualification.js";
+import * as moderation from "./moderation.js";
+import * as owner from "./owner.js";
+import * as setup from "./setup.js";
+import * as community from "./community.js";
+import * as org from "./org.js";
+import * as events from "./events.js";
+import * as legal from "./legal.js";
+const modules=[verify,status,admin,rep,economy,marine,training,qualification,moderation,owner,setup,community,org,events,legal];
+export const commands=new Map(modules.map(c=>[c.data.name,c]));
+export const commandJson=[...commands.values()].map(c=>c.data.toJSON());

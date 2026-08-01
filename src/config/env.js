@@ -1,51 +1,21 @@
 import "dotenv/config";
 import { z } from "zod";
 
-const optionalSnowflake = z
-  .string()
-  .regex(/^\d{17,20}$/)
-  .optional()
-  .or(z.literal(""));
-
+const snowflake = z.string().regex(/^\d{17,20}$/);
 const schema = z.object({
   DISCORD_TOKEN: z.string().min(20),
-  DISCORD_CLIENT_ID: z.string().regex(/^\d{17,20}$/),
-  DISCORD_GUILD_ID: z.string().regex(/^\d{17,20}$/),
-  DISCORD_VERIFIED_ROLE_ID: optionalSnowflake,
-  DISCORD_LOG_CHANNEL_ID: optionalSnowflake,
-  DISCORD_ADMIN_ROLE_ID: optionalSnowflake,
-
+  DISCORD_CLIENT_ID: snowflake,
+  DISCORD_GUILD_ID: snowflake,
+  DISCORD_OWNER_ID: snowflake.optional().or(z.literal("")),
   PORT: z.coerce.number().int().positive().default(3000),
-  PUBLIC_BASE_URL: z.string().url(),
+  PUBLIC_BASE_URL: z.string().url().default("https://marine-verification.onrender.com"),
   ROBLOX_API_SECRET: z.string().min(32),
-
   DATABASE_URL: z.string().min(1),
-  DATABASE_SSL: z
-    .enum(["true", "false"])
-    .default("true")
-    .transform((value) => value === "true"),
-
-  ROLE_HQMC: optionalSnowflake,
-  ROLE_TECOM: optionalSnowflake,
-  ROLE_MCRD: optionalSnowflake,
-  ROLE_I_MEF: optionalSnowflake,
-  ROLE_MARSOC: optionalSnowflake,
-
-  TEAM_HQMC: z.string().default("Headquarters Marine Corps"),
-  TEAM_TECOM: z.string().default("Training and Education Command"),
-  TEAM_MCRD: z.string().default("Marine Corps Recruit Depot"),
-  TEAM_I_MEF: z.string().default("I Marine Expeditionary Force"),
-  TEAM_MARSOC: z.string().default("Marine Forces Special Operations Command"),
-  TEAM_DEFAULT: z.string().default("Civilian"),
-  TEAM_PERSONNEL: z.string().default("Marine Corps Personnel")
+  DATABASE_SSL: z.enum(["true", "false"]).default("true").transform(v => v === "true")
 });
-
 const parsed = schema.safeParse(process.env);
-
 if (!parsed.success) {
-  console.error("Invalid environment configuration:");
-  console.error(parsed.error.flatten().fieldErrors);
+  console.error("Invalid environment configuration:", parsed.error.flatten().fieldErrors);
   process.exit(1);
 }
-
 export const env = Object.freeze(parsed.data);

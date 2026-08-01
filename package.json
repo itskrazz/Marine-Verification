@@ -1,8 +1,8 @@
 {
   "name": "marine-verification",
-  "version": "3.0.0",
+  "version": "5.0.0",
   "private": true,
-  "description": "Discord to Roblox verification, personnel administration, and USMC division team synchronization.",
+  "description": "USMC Roblox/Discord management bot with database-driven setup and expanded commands.",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
