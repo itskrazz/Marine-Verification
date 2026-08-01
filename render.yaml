@@ -1,14 +1,16 @@
 services:
   - type: web
-    name: usmc-community-bot
+    name: marine-verification
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run db:init && npm run deploy-commands
+    buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
-        value: 20.11.1
+        value: 22.23.2
+      - key: PORT
+        value: "3000"
       - key: DATABASE_SSL
         value: "true"
       - key: DISCORD_TOKEN
@@ -21,14 +23,14 @@ services:
         sync: false
       - key: DISCORD_LOG_CHANNEL_ID
         sync: false
+      - key: DISCORD_ADMIN_ROLE_ID
+        sync: false
       - key: PUBLIC_BASE_URL
         sync: false
       - key: ROBLOX_API_SECRET
-        generateValue: true
+        sync: false
       - key: DATABASE_URL
-        fromDatabase:
-          name: usmc-community-db
-          property: connectionString
+        sync: false
       - key: ROLE_HQMC
         sync: false
       - key: ROLE_TECOM
@@ -39,7 +41,17 @@ services:
         sync: false
       - key: ROLE_MARSOC
         sync: false
-
-databases:
-  - name: usmc-community-db
-    plan: free
+      - key: TEAM_HQMC
+        value: Headquarters Marine Corps
+      - key: TEAM_TECOM
+        value: Training and Education Command
+      - key: TEAM_MCRD
+        value: Marine Corps Recruit Depot
+      - key: TEAM_I_MEF
+        value: I Marine Expeditionary Force
+      - key: TEAM_MARSOC
+        value: Marine Forces Special Operations Command
+      - key: TEAM_DEFAULT
+        value: Civilian
+      - key: TEAM_PERSONNEL
+        value: Marine Corps Personnel

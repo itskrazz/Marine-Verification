@@ -1,6 +1,11 @@
 import crypto from "node:crypto";
 import { pool } from "../database/pool.js";
-import { upsertPersonnel } from "../database/personnelRepository.js";
+import {
+  getBlacklistEntry,
+  getSetting,
+  upsertPersonnel,
+  writeAuditLog
+} from "../database/repositories.js";
 
 function generateCode() {
   return crypto.randomBytes(5).toString("hex").toUpperCase();
@@ -11,6 +16,22 @@ export async function createVerificationCode({
   robloxUserId,
   robloxUsername
 }) {
+  const maintenance = await getSetting("maintenance");
+  if (maintenance?.enabled) {
+    const error = new Error(
+      maintenance.message || "Verification is temporarily unavailable."
+    );
+    error.code = "MAINTENANCE";
+    throw error;
+  }
+
+  const blacklist = await getBlacklistEntry(discordUserId);
+  if (blacklist) {
+    const error = new Error(blacklist.reason);
+    error.code = "BLACKLISTED";
+    throw error;
+  }
+
   await pool.query(
     `
       DELETE FROM verification_codes
@@ -36,10 +57,20 @@ export async function createVerificationCode({
     [code, discordUserId, robloxUserId, robloxUsername]
   );
 
+  await writeAuditLog({
+    action: "verification_code_created",
+    targetDiscordId: discordUserId,
+    targetRobloxId: robloxUserId,
+    details: { robloxUsername }
+  });
+
   return code;
 }
 
-export async function consumeVerificationCode({ code, robloxUserId }) {
+export async function consumeVerificationCode({
+  code,
+  robloxUserId
+}) {
   const client = await pool.connect();
 
   try {
@@ -55,13 +86,30 @@ export async function consumeVerificationCode({ code, robloxUserId }) {
           AND expires_at > NOW()
         FOR UPDATE
       `,
-      [code.toUpperCase(), robloxUserId]
+      [code, robloxUserId]
     );
 
     const record = result.rows[0];
+
     if (!record) {
       await client.query("ROLLBACK");
       return null;
+    }
+
+    const blacklist = await client.query(
+      `
+        SELECT *
+        FROM verification_blacklist
+        WHERE discord_user_id = $1
+      `,
+      [record.discord_user_id]
+    );
+
+    if (blacklist.rows[0]) {
+      await client.query("ROLLBACK");
+      const error = new Error(blacklist.rows[0].reason);
+      error.code = "BLACKLISTED";
+      throw error;
     }
 
     await client.query(
@@ -81,9 +129,18 @@ export async function consumeVerificationCode({ code, robloxUserId }) {
       robloxUsername: record.roblox_username
     });
 
+    await writeAuditLog({
+      action: "verification_completed",
+      targetDiscordId: record.discord_user_id,
+      targetRobloxId: Number(record.roblox_user_id),
+      details: { robloxUsername: record.roblox_username }
+    });
+
     return record;
   } catch (error) {
-    await client.query("ROLLBACK");
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
     throw error;
   } finally {
     client.release();

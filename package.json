@@ -1,14 +1,15 @@
 {
   "name": "marine-verification",
-  "version": "1.0.1",
-  "description": "Discord and Roblox synchronization foundation for a USMC Roblox community.",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Discord to Roblox verification, personnel administration, and USMC division team synchronization.",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "deploy-commands": "node src/deployCommands.js",
-    "db:migrate": "node src/database/migrate.js"
+    "db:migrate": "node src/database/migrate.js",
+    "deploy-commands": "node src/deployCommands.js"
   },
   "engines": {
     "node": "22.x"

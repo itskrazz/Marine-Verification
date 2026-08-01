@@ -1,15 +1,21 @@
 import { SlashCommandBuilder } from "discord.js";
-import { findByDiscordUserId } from "../database/personnelRepository.js";
-import { getMemberSyncData } from "../services/discordSyncService.js";
+import {
+  findPersonnelByDiscordId
+} from "../database/repositories.js";
+import {
+  getMemberTeamData
+} from "../services/discordService.js";
 
 export const data = new SlashCommandBuilder()
   .setName("status")
-  .setDescription("View your Roblox verification and division sync status.");
+  .setDescription("View your verification and Roblox team status.");
 
 export async function execute(interaction) {
   await interaction.deferReply({ ephemeral: true });
 
-  const personnel = await findByDiscordUserId(interaction.user.id);
+  const personnel = await findPersonnelByDiscordId(
+    interaction.user.id
+  );
 
   if (!personnel) {
     return interaction.editReply(
@@ -17,15 +23,18 @@ export async function execute(interaction) {
     );
   }
 
-  const sync = await getMemberSyncData(interaction.client, interaction.user.id);
+  const teamData = await getMemberTeamData(
+    interaction.client,
+    interaction.user.id
+  );
 
   return interaction.editReply(
     [
       "**USMC Personnel Status**",
       `Roblox: **${personnel.roblox_username}**`,
       `Roblox User ID: \`${personnel.roblox_user_id}\``,
-      `Division: **${sync.division}**`,
-      `Roblox Team: **${sync.team}**`
+      `Division: **${teamData.division}**`,
+      `Roblox Team: **${teamData.team}**`
     ].join("\n")
   );
 }

@@ -1,13 +1,13 @@
 import * as verify from "./verify.js";
 import * as status from "./status.js";
-import * as sync from "./sync.js";
+import * as admin from "./admin.js";
 
 export const commands = new Map([
   [verify.data.name, verify],
   [status.data.name, status],
-  [sync.data.name, sync]
+  [admin.data.name, admin]
 ]);
 
-export const commandData = [...commands.values()].map((command) =>
-  command.data.toJSON()
+export const commandJson = [...commands.values()].map(
+  (command) => command.data.toJSON()
 );

@@ -2,12 +2,18 @@ import {
   Client,
   Collection,
   Events,
-  GatewayIntentBits
+  GatewayIntentBits,
+  REST,
+  Routes
 } from "discord.js";
 import { env } from "./config/env.js";
-import { commands } from "./commands/index.js";
-import { createApp } from "./http/createApp.js";
 import { pool } from "./database/pool.js";
+import { schemaSql } from "./database/schema.js";
+import {
+  commands,
+  commandJson
+} from "./commands/index.js";
+import { createApp } from "./http/createApp.js";
 
 const client = new Client({
   intents: [
@@ -19,7 +25,9 @@ const client = new Client({
 client.commands = new Collection(commands);
 
 client.once(Events.ClientReady, (readyClient) => {
-  console.log(`Discord bot logged in as ${readyClient.user.tag}.`);
+  console.log(
+    `Discord bot logged in as ${readyClient.user.tag}.`
+  );
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -28,6 +36,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   const command = client.commands.get(interaction.commandName);
+
   if (!command) {
     return;
   }
@@ -35,30 +44,58 @@ client.on(Events.InteractionCreate, async (interaction) => {
   try {
     await command.execute(interaction);
   } catch (error) {
-    console.error(`Command ${interaction.commandName} failed:`, error);
+    console.error(
+      `Command ${interaction.commandName} failed:`,
+      error
+    );
 
-    const message = {
-      content: "The command failed. Check the Render logs for details.",
+    const response = {
+      content:
+        "The command failed. Check the Render logs for details.",
       ephemeral: true
     };
 
     if (interaction.deferred || interaction.replied) {
-      await interaction.editReply(message);
+      await interaction.editReply(response);
     } else {
-      await interaction.reply(message);
+      await interaction.reply(response);
     }
   }
 });
 
+async function registerCommands() {
+  const rest = new REST({ version: "10" }).setToken(
+    env.DISCORD_TOKEN
+  );
+
+  await rest.put(
+    Routes.applicationGuildCommands(
+      env.DISCORD_CLIENT_ID,
+      env.DISCORD_GUILD_ID
+    ),
+    {
+      body: commandJson
+    }
+  );
+
+  console.log(
+    `Registered ${commandJson.length} Discord commands.`
+  );
+}
+
 async function start() {
-  await pool.query("SELECT 1");
-  console.log("PostgreSQL connection established.");
+  await pool.query(schemaSql);
+  console.log("PostgreSQL connection and migration completed.");
 
   await client.login(env.DISCORD_TOKEN);
+  await registerCommands();
 
   const app = createApp(client);
+
   app.listen(env.PORT, "0.0.0.0", () => {
-    console.log(`HTTP server listening on port ${env.PORT}.`);
+    console.log(
+      `HTTP server listening on port ${env.PORT}.`
+    );
   });
 }
 

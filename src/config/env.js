@@ -13,12 +13,10 @@ const schema = z.object({
   DISCORD_GUILD_ID: z.string().regex(/^\d{17,20}$/),
   DISCORD_VERIFIED_ROLE_ID: optionalSnowflake,
   DISCORD_LOG_CHANNEL_ID: optionalSnowflake,
+  DISCORD_ADMIN_ROLE_ID: optionalSnowflake,
 
   PORT: z.coerce.number().int().positive().default(3000),
-  PUBLIC_BASE_URL: z
-    .string()
-    .url()
-    .default("https://marine-verification.onrender.com"),
+  PUBLIC_BASE_URL: z.string().url(),
   ROBLOX_API_SECRET: z.string().min(32),
 
   DATABASE_URL: z.string().min(1),

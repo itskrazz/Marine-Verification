@@ -1,6 +1,8 @@
 import { SlashCommandBuilder } from "discord.js";
 import { resolveRobloxUsername } from "../services/robloxService.js";
-import { createVerificationCode } from "../services/verificationService.js";
+import {
+  createVerificationCode
+} from "../services/verificationService.js";
 
 export const data = new SlashCommandBuilder()
   .setName("verify")
@@ -17,7 +19,10 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction) {
   await interaction.deferReply({ ephemeral: true });
 
-  const username = interaction.options.getString("username", true).trim();
+  const username = interaction.options
+    .getString("username", true)
+    .trim();
+
   const robloxUser = await resolveRobloxUsername(username);
 
   if (!robloxUser) {
@@ -26,19 +31,33 @@ export async function execute(interaction) {
     );
   }
 
-  const code = await createVerificationCode({
-    discordUserId: interaction.user.id,
-    robloxUserId: robloxUser.id,
-    robloxUsername: robloxUser.name
-  });
+  try {
+    const code = await createVerificationCode({
+      discordUserId: interaction.user.id,
+      robloxUserId: robloxUser.id,
+      robloxUsername: robloxUser.name
+    });
 
-  return interaction.editReply(
-    [
-      `Roblox account found: **${robloxUser.name}**`,
-      "",
-      `Join the Roblox experience and type: \`!verify ${code}\``,
-      "",
-      "The code expires in 10 minutes and can only be used by that Roblox account."
-    ].join("\n")
-  );
+    return interaction.editReply(
+      [
+        `Roblox account found: **${robloxUser.name}**`,
+        "",
+        `Join the Roblox experience and type: \`!verify ${code}\``,
+        "",
+        "The code expires in 10 minutes and only works for that Roblox account."
+      ].join("\n")
+    );
+  } catch (error) {
+    if (error.code === "BLACKLISTED") {
+      return interaction.editReply(
+        `You are blocked from verification. Reason: **${error.message}**`
+      );
+    }
+
+    if (error.code === "MAINTENANCE") {
+      return interaction.editReply(error.message);
+    }
+
+    throw error;
+  }
 }
